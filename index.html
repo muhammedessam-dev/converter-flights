@@ -9355,7 +9355,13 @@ ZZO|Zonalnoye Airport
 ZZU|Mzuzu Airport
 ZZV|Zanesville Municipal Airport`.split("\n").forEach(l=>{const i=l.indexOf("|");D[l.slice(0,i)]=l.slice(i+1)});
 const AL={XY:["طيران ناس","flynas"],SV:["الخطوط السعودية","Saudia"],F3:["طيران أديل","flyadeal"],EK:["طيران الإمارات","Emirates"],QR:["القطرية","Qatar Airways"],MS:["مصر للطيران","EgyptAir"],TK:["التركية","Turkish Airlines"],J9:["طيران الجزيرة","Jazeera Airways"],KU:["الكويتية","Kuwait Airways"],GF:["طيران الخليج","Gulf Air"],EY:["الاتحاد للطيران","Etihad"],WY:["الطيران العماني","Oman Air"],RJ:["الملكية الأردنية","Royal Jordanian"],ME:["الشرق الأوسط","MEA"],J2:["أذربيجان للطيران","AZAL"],FZ:["فلاي دبي","flydubai"],G9:["العربية للطيران","Air Arabia"],E5:["العربية مصر","Air Arabia Egypt"],NE:["نسما","Nesma Airlines"],PC:["بيغاسوس","Pegasus"],LH:["لوفتهانزا","Lufthansa"],BA:["الخطوط البريطانية","British Airways"],AF:["الفرنسية","Air France"],KL:["كيه إل إم","KLM"],AT:["الملكية المغربية","Royal Air Maroc"],W6:["ويز إير","Wizz Air"],HY:["أوزبكستان","Uzbekistan Airways"]};
+const SB_URL="https://zxncusyvephjtzoxruua.supabase.co",SB_KEY="sb_publishable_gHlQzhAyDJOF3U8OkOsvlA_WCb7mzxa";
+const SBH=SB_KEY.startsWith("sb_")?{apikey:SB_KEY,"Content-Type":"application/json"}:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json"};
+const SB_ON=()=>!SB_URL.includes("YOUR-PROJECT");
 const CU=(()=>{try{return JSON.parse(localStorage.getItem("cu")||"{}")}catch(e){return{}}})();
+const saveCU=()=>{try{localStorage.setItem("cu",JSON.stringify(CU))}catch(e){}};
+async function syncDown(){if(!SB_ON())return;try{const r=await fetch(SB_URL+"/rest/v1/airports?select=code,ar,en&limit=10000",{headers:SBH});if(!r.ok)return;const rows=await r.json();rows.forEach(x=>{CU[x.code]=[x.ar,x.en]});saveCU();render()}catch(e){}}
+async function syncUp(code,ar,en){if(!SB_ON())return;try{await fetch(SB_URL+"/rest/v1/airports",{method:"POST",headers:{...SBH,Prefer:"resolution=ignore-duplicates,return=minimal"},body:JSON.stringify({code,ar,en})})}catch(e){}}
 const MA=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 const ME=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const MK=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
@@ -9393,7 +9399,7 @@ function render(){const segs=parse(document.getElementById("in").value),out=docu
    w.append(x,y);c.appendChild(w);plain.push(a+"\n"+b);ct.push(a+"\n"+b);wp.push("✈️ *"+a+"*\n🗓 "+b)});
   const un=[...new Set([s.f,s.t])].filter(k=>!AP[k]&&!CU[k]&&(!D[k]||lang!=="en"));
   un.forEach(k=>{const n=document.createElement("div"),t=T[ui];n.className="note";n.innerHTML='<div>⚠ '+(D[k]?t.noar:t.unk)+': <bdi>'+k+'</bdi></div><div class="nr"><input placeholder="'+t.nar+'"><input dir="ltr" placeholder="'+t.nen+'"><button class="sv">'+t.save+'</button>'+(window.claude?'<button class="ai">'+t.look+'</button>':'')+'</div><div class="hint"></div>';
-   n.querySelector(".sv").onclick=()=>{const[a,e]=n.querySelectorAll("input"),A=a.value.trim(),E=e.value.trim();if(!A&&!E)return;CU[k]=[A||E,E||A];try{localStorage.setItem("cu",JSON.stringify(CU))}catch(x){}render()};
+   n.querySelector(".sv").onclick=()=>{const[a,e]=n.querySelectorAll("input"),A=a.value.trim(),E=e.value.trim();if(!A&&!E)return;CU[k]=[A||E,E||A];saveCU();syncUp(k,A||E,E||A);render()};
    if(D[k])n.querySelectorAll("input")[1].value=D[k];
    const ai=n.querySelector(".ai");if(ai)ai.onclick=async()=>{const hint=n.querySelector(".hint"),[a,e]=n.querySelectorAll("input");hint.textContent=T[ui].wait;
     try{const sm=await claude.use("sample");if(!sm){hint.textContent=T[ui].na;return}
@@ -9431,6 +9437,7 @@ bAr.onclick=()=>setLang("ar","bAr");bEn.onclick=()=>setLang("en","bEn");bBoth.on
 document.getElementById("in").addEventListener("input",render);
 copy.onclick=async()=>{const t=plain.join("\n").trim();try{await navigator.clipboard.writeText(t);copy.textContent=T[ui].copied}catch(e){copy.textContent=T[ui].manual}setTimeout(()=>copy.textContent=T[ui].copy,1500)};
 setUI((()=>{try{return localStorage.getItem("ui")==="en"?"en":"ar"}catch(e){return"ar"}})());
+syncDown();
 </script>
 </body>
 </html>
